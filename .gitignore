@@ -1,0 +1,14 @@
+x64/
+.vs/
+Debug/
+Release/
+*.user
+*.obj
+*.pdb
+*.ilk
+*.exe
+*.lib
+*.dll
+*.exp
+*.log
+*.tmp

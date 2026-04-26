@@ -3,15 +3,8 @@
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 
+#include <complex>
 #include <vector>
-
-struct Wave
-{
-    float amplitude = 0.0f;
-    float wavelength = 1.0f;
-    float phase = 0.0f;
-    glm::vec2 direction = glm::vec2(1.0f, 0.0f);
-};
 
 struct GridMesh
 {
@@ -24,11 +17,22 @@ struct GridMesh
     int cols = 0;
     float size = 0.0f;
 
+    glm::vec2 windDirection = glm::normalize(glm::vec2(1.0f, 0.18f));
+    float windSpeed = 18.0f;
+
+    int spectralResolution = 18;
+    float phillipsA = 0.0009f;
+    float smallWaveDamping = 0.08f;
+    float heightScale = 1.85f;
+
     std::vector<float> vertices;
     std::vector<unsigned int> indices;
     std::vector<glm::vec2> baseXZ;
     std::vector<glm::vec2> uvs;
-    std::vector<Wave> waves;
+
+    std::vector<glm::vec2> spectralK;
+    std::vector<float> spectralOmega;
+    std::vector<std::complex<float>> h0;
 
     void initialize(int rowsIn, int colsIn, float sizeIn);
     void update(float time);
@@ -36,5 +40,6 @@ struct GridMesh
     void destroy();
 
 private:
+    void generateSpectralModes();
     void uploadVertexData();
 };

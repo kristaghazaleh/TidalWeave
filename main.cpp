@@ -179,16 +179,16 @@ int main()
             ? static_cast<float>(framebufferWidth) / static_cast<float>(framebufferHeight)
             : 16.0f / 9.0f;
 
-        glm::vec3 camPos(0.0f, 0.9f, 2.2f);
+        glm::vec3 camPos(0.0f, 0.80f, 2.65f);
 
         glm::mat4 model = glm::mat4(1.0f);
         glm::mat4 view = glm::lookAt(
             camPos,
-            glm::vec3(0.0f, 0.08f, 0.0f),
+            glm::vec3(0.0f, 0.10f, -0.65f),
             glm::vec3(0.0f, 1.0f, 0.0f)
         );
         glm::mat4 projection = glm::perspective(
-            glm::radians(45.0f),
+            glm::radians(42.0f),
             aspect,
             0.1f,
             100.0f

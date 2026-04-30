@@ -1,6 +1,7 @@
 #pragma once
 
-#include <glad/glad.h>
+#define GL_SILENCE_DEPRECATION
+#include <OpenGL/gl3.h>
 #include <glm/glm.hpp>
 
 #include <complex>

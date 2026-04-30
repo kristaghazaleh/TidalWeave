@@ -3,7 +3,8 @@
 #include <sstream>
 #include <string>
 
-#include <glad/glad.h>
+#define GL_SILENCE_DEPRECATION
+#include <OpenGL/gl3.h>
 #include <GLFW/glfw3.h>
 
 #include <glm/glm.hpp>
@@ -11,6 +12,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "grid.h"
+#include "gui.h"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
@@ -137,14 +139,6 @@ int main()
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-    {
-        std::cerr << "Failed to initialize GLAD.\n";
-        glfwDestroyWindow(window);
-        glfwTerminate();
-        return -1;
-    }
-
     std::cout << "OpenGL version: " << glGetString(GL_VERSION) << '\n';
 
     glEnable(GL_DEPTH_TEST);
@@ -161,6 +155,11 @@ int main()
     GridMesh grid;
     grid.initialize(180, 180, 4.0f);
 
+    GuiState gui;
+    gui.init();
+
+    int prevKey1 = GLFW_RELEASE, prevKey2 = GLFW_RELEASE, prevKey3 = GLFW_RELEASE;
+
     while (!glfwWindowShouldClose(window))
     {
         if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -170,6 +169,8 @@ int main()
 
         const float timeValue = static_cast<float>(glfwGetTime());
         grid.update(timeValue);
+
+        gui.update(window, prevKey1, prevKey2, prevKey3);
 
         int framebufferWidth = 0;
         int framebufferHeight = 0;
@@ -195,8 +196,12 @@ int main()
         );
         glm::mat4 viewProjection = projection * view;
 
-        glClearColor(0.02f, 0.04f, 0.08f, 1.0f);
+        float clearR, clearG, clearB;
+        gui.getClearColor(clearR, clearG, clearB);
+        glClearColor(clearR, clearG, clearB, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        gui.drawSky(timeValue);
 
         glUseProgram(shaderProgram);
 
@@ -213,6 +218,7 @@ int main()
     }
 
     grid.destroy();
+    gui.destroy();
     glDeleteProgram(shaderProgram);
 
     glfwDestroyWindow(window);

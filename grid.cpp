@@ -1,6 +1,7 @@
 #include "grid.h"
 
 #include <glm/gtc/constants.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -251,24 +252,22 @@ void GridMesh::update(float time)
         {
             const glm::vec2& kVec = spectralK[m];
             if (glm::dot(kVec, kVec) < 1e-12f)
-            {
                 continue;
-            }
 
             const float phase = kVec.x * x + kVec.y * z;
             const std::complex<float> expIKX(std::cos(phase), std::sin(phase));
             const std::complex<float> contribution = hkt[m] * expIKX;
 
-            h += contribution;
+            h    += contribution;
             dhdx += std::complex<float>(0.0f, kVec.x) * contribution;
             dhdz += std::complex<float>(0.0f, kVec.y) * contribution;
         }
 
-        const float height = heightScale * h.real();
-        const float dHdX = heightScale * dhdx.real();
-        const float dHdZ = heightScale * dhdz.real();
+        const float height  = heightScale * h.real();
+        const float dHdX    = heightScale * dhdx.real();
+        const float dHdZ    = heightScale * dhdz.real();
 
-        const glm::vec3 normal = glm::normalize(glm::vec3(-dHdX, 1.0f, -dHdZ));
+        const glm::vec3 normal  = glm::normalize(glm::vec3(-dHdX, 1.0f, -dHdZ));
         const glm::vec3 tangent = glm::normalize(glm::vec3(1.0f, dHdX, 0.0f));
 
         const std::size_t base = i * 11;

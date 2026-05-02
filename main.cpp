@@ -159,7 +159,7 @@ int main()
     }
 
     GridMesh grid;
-    grid.initialize(180, 180, 4.0f);
+    grid.initialize(180, 180, 7.0f);
 
     while (!glfwWindowShouldClose(window))
     {

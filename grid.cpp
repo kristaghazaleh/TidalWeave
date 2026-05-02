@@ -2,7 +2,6 @@
 
 #include <glm/gtc/constants.hpp>
 
-#include <algorithm>
 #include <cmath>
 #include <complex>
 #include <random>
@@ -10,10 +9,143 @@
 
 namespace
 {
-    inline int wrappedIndex(int i, int n)
+    inline int wrapIndex(int i, int n)
     {
-        int r = i % n;
+        const int r = i % n;
         return (r < 0) ? (r + n) : r;
+    }
+
+    bool isPowerOfTwo(int n)
+    {
+        return n > 0 && (n & (n - 1)) == 0;
+    }
+
+    int greatestPowerOfTwoLE(int n)
+    {
+        int p = 1;
+        while ((p << 1) <= n)
+        {
+            p <<= 1;
+        }
+        return p;
+    }
+
+    void fft1D(std::vector<std::complex<float>>& a, bool inverse)
+    {
+        const int n = static_cast<int>(a.size());
+
+        for (int i = 1, j = 0; i < n; ++i)
+        {
+            int bit = n >> 1;
+            for (; j & bit; bit >>= 1)
+            {
+                j ^= bit;
+            }
+            j ^= bit;
+
+            if (i < j)
+            {
+                std::swap(a[i], a[j]);
+            }
+        }
+
+        for (int len = 2; len <= n; len <<= 1)
+        {
+            const float angle = 2.0f * glm::pi<float>() / static_cast<float>(len) * (inverse ? -1.0f : 1.0f);
+            const std::complex<float> wLen(std::cos(angle), std::sin(angle));
+
+            for (int i = 0; i < n; i += len)
+            {
+                std::complex<float> w(1.0f, 0.0f);
+                for (int j = 0; j < len / 2; ++j)
+                {
+                    const std::complex<float> u = a[i + j];
+                    const std::complex<float> v = a[i + j + len / 2] * w;
+                    a[i + j] = u + v;
+                    a[i + j + len / 2] = u - v;
+                    w *= wLen;
+                }
+            }
+        }
+
+        if (inverse)
+        {
+            const float invN = 1.0f / static_cast<float>(n);
+            for (int i = 0; i < n; ++i)
+            {
+                a[i] *= invN;
+            }
+        }
+    }
+
+    void inverseFFT2D(const std::vector<std::complex<float>>& input, int N, std::vector<float>& output)
+    {
+        std::vector<std::complex<float>> data = input;
+        std::vector<std::complex<float>> scratch(static_cast<std::size_t>(N));
+
+        for (int z = 0; z < N; ++z)
+        {
+            for (int x = 0; x < N; ++x)
+            {
+                scratch[x] = data[static_cast<std::size_t>(z) * N + x];
+            }
+            fft1D(scratch, true);
+            for (int x = 0; x < N; ++x)
+            {
+                data[static_cast<std::size_t>(z) * N + x] = scratch[x];
+            }
+        }
+
+        for (int x = 0; x < N; ++x)
+        {
+            for (int z = 0; z < N; ++z)
+            {
+                scratch[z] = data[static_cast<std::size_t>(z) * N + x];
+            }
+            fft1D(scratch, true);
+            for (int z = 0; z < N; ++z)
+            {
+                data[static_cast<std::size_t>(z) * N + x] = scratch[z];
+            }
+        }
+
+        output.resize(static_cast<std::size_t>(N) * N);
+        for (int z = 0; z < N; ++z)
+        {
+            for (int x = 0; x < N; ++x)
+            {
+                output[static_cast<std::size_t>(z) * N + x] = data[static_cast<std::size_t>(z) * N + x].real();
+            }
+        }
+    }
+
+    float samplePeriodicField(const std::vector<float>& field, int N, float x, float z, float patchSize)
+    {
+        float u = (x / patchSize) + 0.5f;
+        float v = (z / patchSize) + 0.5f;
+
+        u -= std::floor(u);
+        v -= std::floor(v);
+
+        const float gx = u * static_cast<float>(N);
+        const float gz = v * static_cast<float>(N);
+
+        const int x0 = static_cast<int>(std::floor(gx)) % N;
+        const int z0 = static_cast<int>(std::floor(gz)) % N;
+        const int x1 = (x0 + 1) % N;
+        const int z1 = (z0 + 1) % N;
+
+        const float tx = gx - std::floor(gx);
+        const float tz = gz - std::floor(gz);
+
+        const float f00 = field[static_cast<std::size_t>(z0) * N + x0];
+        const float f10 = field[static_cast<std::size_t>(z0) * N + x1];
+        const float f01 = field[static_cast<std::size_t>(z1) * N + x0];
+        const float f11 = field[static_cast<std::size_t>(z1) * N + x1];
+
+        const float a = (1.0f - tx) * f00 + tx * f10;
+        const float b = (1.0f - tx) * f01 + tx * f11;
+        return (1.0f - tz) * a + tz * b;
     }
 }
 
@@ -23,15 +155,21 @@ void GridMesh::generateSpectralModes()
     spectralOmega.clear();
     h0.clear();
 
+    if (!isPowerOfTwo(spectralResolution))
+    {
+        spectralResolution = greatestPowerOfTwoLE(spectralResolution);
+    }
+
     const float g = 9.81f;
     const glm::vec2 windDir = glm::normalize(windDirection);
     const float L = (windSpeed * windSpeed) / g;
     const float dk = glm::two_pi<float>() / size;
     const int N = spectralResolution;
 
-    spectralK.reserve(static_cast<std::size_t>(N * N));
-    spectralOmega.reserve(static_cast<std::size_t>(N * N));
-    h0.reserve(static_cast<std::size_t>(N * N));
+    const std::size_t modeCount = static_cast<std::size_t>(N) * N;
+    spectralK.reserve(modeCount);
+    spectralOmega.reserve(modeCount);
+    h0.reserve(modeCount);
 
     std::mt19937 rng(1337u);
     std::normal_distribution<float> gaussian(0.0f, 1.0f);
@@ -40,8 +178,8 @@ void GridMesh::generateSpectralModes()
     {
         for (int ix = 0; ix < N; ++ix)
         {
-            const int mx = ix - N / 2;
-            const int mz = iz - N / 2;
+            const int mx = (ix < N / 2) ? ix : ix - N;
+            const int mz = (iz < N / 2) ? iz : iz - N;
 
             const glm::vec2 kVec = dk * glm::vec2(static_cast<float>(mx), static_cast<float>(mz));
             const float k = glm::length(kVec);
@@ -57,7 +195,7 @@ void GridMesh::generateSpectralModes()
 
             const glm::vec2 kHat = kVec / k;
             const float alignmentRaw = glm::dot(kHat, windDir);
-            const float alignment = std::abs(alignmentRaw);
+            const float alignment = std::max(alignmentRaw, 0.0f);
 
             float phillips =
                 phillipsA *
@@ -69,13 +207,10 @@ void GridMesh::generateSpectralModes()
 
             if (alignmentRaw < 0.0f)
             {
-                phillips *= 0.25f;
+                phillips *= 0.07f;
             }
 
-            if (phillips < 0.0f)
-            {
-                phillips = 0.0f;
-            }
+            phillips = std::max(phillips, 0.0f);
 
             const float xiR = gaussian(rng);
             const float xiI = gaussian(rng);
@@ -85,6 +220,13 @@ void GridMesh::generateSpectralModes()
             spectralOmega.push_back(std::sqrt(g * k));
         }
     }
+
+    heightSpectrum.resize(modeCount);
+    slopeXSpectrum.resize(modeCount);
+    slopeZSpectrum.resize(modeCount);
+    heightField.resize(modeCount);
+    slopeXField.resize(modeCount);
+    slopeZField.resize(modeCount);
 }
 
 void GridMesh::initialize(int rowsIn, int colsIn, float sizeIn)
@@ -218,24 +360,33 @@ void GridMesh::update(float time)
     const int N = spectralResolution;
     const std::size_t modeCount = spectralK.size();
 
-    std::vector<std::complex<float>> hkt(modeCount, std::complex<float>(0.0f, 0.0f));
-
     for (int iz = 0; iz < N; ++iz)
     {
         for (int ix = 0; ix < N; ++ix)
         {
             const int idx = iz * N + ix;
-            const int oppX = wrappedIndex(N - ix, N);
-            const int oppZ = wrappedIndex(N - iz, N);
+            const int oppX = wrapIndex(-ix, N);
+            const int oppZ = wrapIndex(-iz, N);
             const int oppIdx = oppZ * N + oppX;
 
             const float omegaT = spectralOmega[idx] * time;
             const std::complex<float> expPos(std::cos(omegaT), std::sin(omegaT));
             const std::complex<float> expNeg(std::cos(omegaT), -std::sin(omegaT));
 
-            hkt[idx] = h0[idx] * expPos + std::conj(h0[oppIdx]) * expNeg;
+            const std::complex<float> hkt = h0[idx] * expPos + std::conj(h0[oppIdx]) * expNeg;
+            heightSpectrum[static_cast<std::size_t>(idx)] = hkt;
+
+            const glm::vec2& kVec = spectralK[static_cast<std::size_t>(idx)];
+            slopeXSpectrum[static_cast<std::size_t>(idx)] = std::complex<float>(0.0f, kVec.x) * hkt;
+            slopeZSpectrum[static_cast<std::size_t>(idx)] = std::complex<float>(0.0f, kVec.y) * hkt;
         }
     }
+
+    inverseFFT2D(heightSpectrum, N, heightField);
+    inverseFFT2D(slopeXSpectrum, N, slopeXField);
+    inverseFFT2D(slopeZSpectrum, N, slopeZField);
+
+    const float fieldScale = heightScale * static_cast<float>(N * N);
 
     const std::size_t vertexCount = baseXZ.size();
     for (std::size_t i = 0; i < vertexCount; ++i)
@@ -243,30 +394,9 @@ void GridMesh::update(float time)
         const float x = baseXZ[i].x;
         const float z = baseXZ[i].y;
 
-        std::complex<float> h(0.0f, 0.0f);
-        std::complex<float> dhdx(0.0f, 0.0f);
-        std::complex<float> dhdz(0.0f, 0.0f);
-
-        for (std::size_t m = 0; m < modeCount; ++m)
-        {
-            const glm::vec2& kVec = spectralK[m];
-            if (glm::dot(kVec, kVec) < 1e-12f)
-            {
-                continue;
-            }
-
-            const float phase = kVec.x * x + kVec.y * z;
-            const std::complex<float> expIKX(std::cos(phase), std::sin(phase));
-            const std::complex<float> contribution = hkt[m] * expIKX;
-
-            h += contribution;
-            dhdx += std::complex<float>(0.0f, kVec.x) * contribution;
-            dhdz += std::complex<float>(0.0f, kVec.y) * contribution;
-        }
-
-        const float height = heightScale * h.real();
-        const float dHdX = heightScale * dhdx.real();
-        const float dHdZ = heightScale * dhdz.real();
+        const float height = fieldScale * samplePeriodicField(heightField, N, x, z, size);
+        const float dHdX = fieldScale * samplePeriodicField(slopeXField, N, x, z, size);
+        const float dHdZ = fieldScale * samplePeriodicField(slopeZField, N, x, z, size);
 
         const glm::vec3 normal = glm::normalize(glm::vec3(-dHdX, 1.0f, -dHdZ));
         const glm::vec3 tangent = glm::normalize(glm::vec3(1.0f, dHdX, 0.0f));
@@ -285,7 +415,7 @@ void GridMesh::update(float time)
         vertices[base + 7] = tangent.y;
         vertices[base + 8] = tangent.z;
 
-        vertices[base + 9]  = uvs[i].x;
+        vertices[base + 9] = uvs[i].x;
         vertices[base + 10] = uvs[i].y;
     }
 

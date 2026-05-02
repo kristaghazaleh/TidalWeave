@@ -20,7 +20,8 @@ struct GridMesh
     glm::vec2 windDirection = glm::normalize(glm::vec2(1.0f, 0.18f));
     float windSpeed = 18.0f;
 
-    int spectralResolution = 18;
+    // FFT grid resolution. Best results come from powers of two.
+    int spectralResolution = 32;
     float phillipsA = 0.0009f;
     float smallWaveDamping = 0.08f;
     float heightScale = 1.85f;
@@ -33,6 +34,14 @@ struct GridMesh
     std::vector<glm::vec2> spectralK;
     std::vector<float> spectralOmega;
     std::vector<std::complex<float>> h0;
+
+    std::vector<std::complex<float>> heightSpectrum;
+    std::vector<std::complex<float>> slopeXSpectrum;
+    std::vector<std::complex<float>> slopeZSpectrum;
+
+    std::vector<float> heightField;
+    std::vector<float> slopeXField;
+    std::vector<float> slopeZField;
 
     void initialize(int rowsIn, int colsIn, float sizeIn);
     void update(float time);

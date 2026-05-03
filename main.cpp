@@ -16,6 +16,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "grid.h"
+#include "fog.h"
 
 namespace
 {
@@ -461,6 +462,29 @@ int main()
     GridMesh grid;
     grid.initialize(480, 480, 6.0f);
 
+    FogRenderer fog;
+    if (!fog.initialize("shaders/fog.vert", "shaders/fog.frag"))
+    {
+        glDeleteVertexArrays(1, &skyVAO);
+        glDeleteTextures(1, &sunsetTexture);
+        glDeleteTextures(1, &nightTexture);
+        glDeleteProgram(oceanProgram);
+        glDeleteProgram(skyProgram);
+        glfwDestroyWindow(window);
+        glfwTerminate();
+        return -1;
+    }
+
+    FogSettings fogSettings;
+    fogSettings.position = glm::vec3(0.0f, -0.04f, -(grid.size * 0.35f));
+    fogSettings.size = glm::vec3(grid.size * 2.6f, 0.92f, grid.size * 1.65f);
+    fogSettings.nearDistance = 1.7f;
+    fogSettings.farDistance = 9.5f;
+    fogSettings.sunsetDensity = 0.95f;
+    fogSettings.nightDensity = 0.62f;
+    fogSettings.sunsetColor = glm::vec3(0.92f, 0.74f, 0.68f);
+    fogSettings.nightColor = glm::vec3(0.10f, 0.13f, 0.21f);
+
     float sunsetRotation = 0.02f;
     float sunsetPitch = 0.00f;
     float sunsetExposure = 1.55f;
@@ -574,10 +598,13 @@ int main()
         glUniform1i(glGetUniformLocation(oceanProgram, "uEnvironmentMap"), 0);
         grid.draw();
 
+        fog.render(viewProjection, camPos, static_cast<int>(envMode), fogSettings);
+
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
+    fog.destroy();
     grid.destroy();
     glDeleteVertexArrays(1, &skyVAO);
     glDeleteTextures(1, &sunsetTexture);

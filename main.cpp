@@ -16,6 +16,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "grid.h"
+#include "gui.h"
 
 namespace
 {
@@ -453,6 +454,11 @@ int main()
     GridMesh grid;
     grid.initialize(480, 480, 6.0f);
 
+    GuiState gui;
+    gui.init();
+
+    int prevKey1 = GLFW_RELEASE, prevKey2 = GLFW_RELEASE, prevKey3 = GLFW_RELEASE;
+
     float sunsetRotation = 0.02f;
     float sunsetPitch = 0.00f;
     float sunsetExposure = 1.55f;
@@ -473,14 +479,12 @@ int main()
             glfwSetWindowShouldClose(window, true);
         }
 
-        if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
-        {
-            envMode = EnvironmentMode::Sunset;
-        }
-        if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS)
-        {
+        // GUI handles key 1 (sunset), key 2 (day→sunset), key 3 (night)
+        gui.update(window, prevKey1, prevKey2, prevKey3);
+        if (gui.mode == SkyMode::Nighttime)
             envMode = EnvironmentMode::Night;
-        }
+        else
+            envMode = EnvironmentMode::Sunset;
 
         float* activeRotation = (envMode == EnvironmentMode::Sunset) ? &sunsetRotation : &nightRotation;
         float* activePitch = (envMode == EnvironmentMode::Sunset) ? &sunsetPitch : &nightPitch;
@@ -571,6 +575,7 @@ int main()
     }
 
     grid.destroy();
+    gui.destroy();
     glDeleteVertexArrays(1, &skyVAO);
     glDeleteTextures(1, &sunsetTexture);
     glDeleteTextures(1, &nightTexture);

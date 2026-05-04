@@ -25,6 +25,7 @@ struct GridMesh
     float phillipsA = 0.0009f;
     float smallWaveDamping = 0.08f;
     float heightScale = 1.85f;
+    float waveActivity = 1.0f;
 
     std::vector<float> vertices;
     std::vector<unsigned int> indices;
@@ -47,6 +48,9 @@ struct GridMesh
     void update(float time);
     void draw() const;
     void destroy();
+
+    void setWaveActivity(float value);
+    void adjustWaveActivity(float delta);
 
 private:
     void generateSpectralModes();

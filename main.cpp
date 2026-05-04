@@ -20,6 +20,8 @@
 
 namespace
 {
+    GridMesh* gScrollGrid = nullptr;
+
     enum class EnvironmentMode
     {
         Sunset = 0,
@@ -125,6 +127,27 @@ void main()
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
     glViewport(0, 0, width, height);
+}
+
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+    (void)window;
+    (void)xoffset;
+
+    if (gScrollGrid == nullptr || yoffset == 0.0)
+    {
+        return;
+    }
+
+    const float step = 0.04f * static_cast<float>(yoffset);
+    const float previous = gScrollGrid->waveActivity;
+    gScrollGrid->adjustWaveActivity(step);
+
+    if (std::abs(gScrollGrid->waveActivity - previous) > 1e-5f)
+    {
+        std::cout << "Wave activity: " << gScrollGrid->waveActivity << " (range 0.10 - 1.45)\n";
+    }
 }
 
 std::string readFileToString(const std::string& path)
@@ -416,6 +439,7 @@ int main()
 
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetScrollCallback(window, scroll_callback);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
@@ -460,7 +484,9 @@ int main()
     EnvironmentMode envMode = EnvironmentMode::Sunset;
 
     GridMesh grid;
-    grid.initialize(480, 480, 6.0f);
+    grid.initialize(480, 480, 9.5f);
+    gScrollGrid = &grid;
+    std::cout << "Wave activity: " << grid.waveActivity << " (range 0.10 - 1.45)\n";
 
     FogRenderer fog;
     if (!fog.initialize("shaders/fog.vert", "shaders/fog.frag"))
@@ -476,14 +502,17 @@ int main()
     }
 
     FogSettings fogSettings;
-    fogSettings.position = glm::vec3(0.0f, -0.04f, -(grid.size * 0.35f));
-    fogSettings.size = glm::vec3(grid.size * 2.6f, 0.92f, grid.size * 1.65f);
-    fogSettings.nearDistance = 1.7f;
-    fogSettings.farDistance = 9.5f;
-    fogSettings.sunsetDensity = 0.95f;
-    fogSettings.nightDensity = 0.62f;
-    fogSettings.sunsetColor = glm::vec3(0.92f, 0.74f, 0.68f);
-    fogSettings.nightColor = glm::vec3(0.10f, 0.13f, 0.21f);
+    fogSettings.position = glm::vec3(0.0f, -0.07f, -(grid.size * 0.18f));
+    fogSettings.size = glm::vec3(grid.size * 3.8f, 0.40f, grid.size * 2.90f);
+
+    fogSettings.nearDistance = 1.60f;
+    fogSettings.farDistance = 17.0f;
+
+    fogSettings.sunsetDensity = 0.78f;
+    fogSettings.nightDensity = 0.28f;
+
+    fogSettings.sunsetColor = glm::vec3(0.84f, 0.72f, 0.67f);
+    fogSettings.nightColor  = glm::vec3(0.05f, 0.06f, 0.08f);
 
     float sunsetRotation = 0.02f;
     float sunsetPitch = 0.00f;
@@ -491,7 +520,7 @@ int main()
 
     float nightRotation = 0.00f;
     float nightPitch = 0.00f;
-    float nightExposure = 7.50f;
+    float nightExposure = 8.20f;
 
     float lastTime = static_cast<float>(glfwGetTime());
 
@@ -543,16 +572,16 @@ int main()
             ? static_cast<float>(framebufferWidth) / static_cast<float>(framebufferHeight)
             : 16.0f / 9.0f;
 
-        glm::vec3 camPos(0.0f, 0.58f, 2.42f);
+        glm::vec3 camPos(0.0f, 0.60f, 2.72f);
 
         glm::mat4 model = glm::mat4(1.0f);
         glm::mat4 view = glm::lookAt(
             camPos,
-            glm::vec3(0.0f, 0.10f, -0.55f),
+            glm::vec3(0.0f, 0.12f, -1.05f),
             glm::vec3(0.0f, 1.0f, 0.0f)
         );
         glm::mat4 projection = glm::perspective(
-            glm::radians(42.0f),
+            glm::radians(44.0f),
             aspect,
             0.1f,
             100.0f
@@ -598,12 +627,13 @@ int main()
         glUniform1i(glGetUniformLocation(oceanProgram, "uEnvironmentMap"), 0);
         grid.draw();
 
-        fog.render(viewProjection, camPos, static_cast<int>(envMode), fogSettings);
+        fog.render(viewProjection, camPos, static_cast<int>(envMode), fogSettings, timeValue);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
+    gScrollGrid = nullptr;
     fog.destroy();
     grid.destroy();
     glDeleteVertexArrays(1, &skyVAO);

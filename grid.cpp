@@ -149,6 +149,16 @@ namespace
     }
 }
 
+void GridMesh::setWaveActivity(float value)
+{
+    waveActivity = glm::clamp(value, 0.10f, 1.45f);
+}
+
+void GridMesh::adjustWaveActivity(float delta)
+{
+    setWaveActivity(waveActivity + delta);
+}
+
 void GridMesh::generateSpectralModes()
 {
     spectralK.clear();
@@ -386,7 +396,7 @@ void GridMesh::update(float time)
     inverseFFT2D(slopeXSpectrum, N, slopeXField);
     inverseFFT2D(slopeZSpectrum, N, slopeZField);
 
-    const float fieldScale = heightScale * static_cast<float>(N * N);
+    const float fieldScale = heightScale * waveActivity * static_cast<float>(N * N);
 
     const std::size_t vertexCount = baseXZ.size();
     for (std::size_t i = 0; i < vertexCount; ++i)

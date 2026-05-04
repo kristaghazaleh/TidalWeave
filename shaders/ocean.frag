@@ -61,8 +61,8 @@ vec3 proceduralSky(vec3 dir)
     }
     else
     {
-        vec3 horizon = vec3(0.08, 0.10, 0.16);
-        vec3 zenith = vec3(0.01, 0.03, 0.08);
+        vec3 horizon = vec3(0.10, 0.14, 0.24);
+        vec3 zenith = vec3(0.02, 0.06, 0.16);
         return mix(horizon, zenith, pow(t, 0.85));
     }
 }
@@ -204,14 +204,14 @@ void main()
     }
     else
     {
-        lightDir = normalize(vec3(-0.08, 0.97, 0.24));
-        deepWater = vec3(0.01, 0.04, 0.08);
-        shallowWater = vec3(0.04, 0.10, 0.17);
-        ambientStrength = 0.05;
-        diffuseStrength = 0.18;
-        specularStrength = 0.92;
-        envStrength = 0.72;
-        microStrength = 0.14;
+        lightDir = normalize(vec3(-0.10, 0.98, 0.18));
+        deepWater = vec3(0.018, 0.065, 0.155);
+        shallowWater = vec3(0.070, 0.160, 0.315);
+        ambientStrength = 0.10;
+        diffuseStrength = 0.34;
+        specularStrength = 1.42;
+        envStrength = 1.06;
+        microStrength = 0.32;
     }
 
     vec3 halfVec = normalize(lightDir + viewDir);
@@ -223,6 +223,10 @@ void main()
     float fresnel = fresnelSchlick(NdotV, 0.02);
     float roughness = clamp((1.0 - NdotV) * mix(0.88, 1.15, roughMask), 0.0, 1.0);
     vec3 envColor = sampleEnvironmentSoft(reflectedDir, roughness);
+    if (uEnvironmentMode == 1)
+    {
+        envColor *= vec3(0.62, 0.82, 1.28);
+    }
 
     float bandA = fbm(vPosition.xz * 0.022 + vec2(0.007 * uTime, -0.004 * uTime));
     float bandB = fbm(vec2(
@@ -237,10 +241,12 @@ void main()
     band = smoothstep(0.18, 0.84, band);
     vec3 waterBody = mix(deepWater, shallowWater, band);
 
+    vec3 diffuseTint = (uEnvironmentMode == 0) ? vec3(1.0) : vec3(0.72, 0.88, 1.16);
+    vec3 specTint = (uEnvironmentMode == 0) ? vec3(1.0) : vec3(0.58, 0.78, 1.32);
     vec3 ambient = ambientStrength * waterBody;
-    vec3 diffuse = diffuseStrength * waterBody * NdotL;
-    vec3 specular = specularStrength * mix(0.80, 1.08, roughMask) * vec3(1.0) * pow(NdotH, 140.0);
-    vec3 microSpecular = microStrength * mix(0.65, 1.10, broadMask) * detailFade * vec3(1.0) * pow(NdotH, 480.0);
+    vec3 diffuse = diffuseStrength * waterBody * diffuseTint * NdotL;
+    vec3 specular = specularStrength * mix(0.80, 1.08, roughMask) * specTint * pow(NdotH, 140.0);
+    vec3 microSpecular = microStrength * mix(0.65, 1.10, broadMask) * detailFade * specTint * pow(NdotH, 480.0);
 
     vec3 color = ambient + (1.0 - fresnel) * diffuse + fresnel * envStrength * envColor + specular + microSpecular;
     out_color = vec4(color, 1.0);

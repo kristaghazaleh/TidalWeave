@@ -102,8 +102,8 @@ vec3 proceduralSky(vec3 dir)
     }
     else
     {
-        vec3 horizon = vec3(0.06, 0.08, 0.14);
-        vec3 zenith = vec3(0.00, 0.02, 0.06);
+        vec3 horizon = vec3(0.12, 0.18, 0.30);
+        vec3 zenith = vec3(0.02, 0.07, 0.18);
         return mix(horizon, zenith, pow(t, 0.80));
     }
 }
@@ -116,9 +116,13 @@ void main()
     vec3 worldDir = normalize((uInvView * vec4(viewDir, 0.0)).xyz);
 
     vec3 env = toneMap(texture(uEnvironmentMap, directionToEquirectUV(worldDir)).rgb);
+    if (uEnvironmentMode == 1)
+    {
+        env *= vec3(0.70, 0.84, 1.18);
+    }
     vec3 sky = proceduralSky(worldDir);
 
-    float envMix = (uEnvironmentMode == 0) ? 0.94 : 0.995;
+    float envMix = (uEnvironmentMode == 0) ? 0.94 : 0.975;
     vec3 color = mix(sky, env, envMix);
     out_color = vec4(color, 1.0);
 }
@@ -514,7 +518,7 @@ int main()
     fogSettings.nightDensity = 0.24f;
 
     fogSettings.sunsetColor = glm::vec3(0.84f, 0.72f, 0.67f);
-    fogSettings.nightColor  = glm::vec3(0.05f, 0.06f, 0.08f);
+    fogSettings.nightColor  = glm::vec3(0.06f, 0.09f, 0.16f);
 
     float sunsetRotation = 0.02f;
     float sunsetPitch = 0.00f;
@@ -522,7 +526,7 @@ int main()
 
     float nightRotation = 0.00f;
     float nightPitch = 0.00f;
-    float nightExposure = 7.50f;
+    float nightExposure = 9.25f;
 
     float lastTime = static_cast<float>(glfwGetTime());
 

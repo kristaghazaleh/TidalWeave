@@ -123,14 +123,14 @@ void main()
     }
     else
     {
-        lowColor = mix(uFogColor, vec3(0.03, 0.035, 0.045), 0.45);
-        highColor = mix(uFogColor, vec3(0.08, 0.09, 0.10), 0.28);
-        horizonColor = vec3(0.10, 0.11, 0.14);
-        ambientSky = vec3(0.030, 0.035, 0.045);
-        waterBounce = vec3(0.010, 0.014, 0.020);
-        lightColor = vec3(0.08, 0.10, 0.16);
+        lowColor = mix(uFogColor, vec3(0.04, 0.07, 0.14), 0.42);
+        highColor = mix(uFogColor, vec3(0.12, 0.20, 0.34), 0.36);
+        horizonColor = vec3(0.20, 0.30, 0.48);
+        ambientSky = vec3(0.06, 0.10, 0.18);
+        waterBounce = vec3(0.025, 0.045, 0.080);
+        lightColor = vec3(0.42, 0.58, 0.96);
         lightDir = normalize(vec3(-0.10, 0.98, 0.20));
-        phaseExponent = 12.0;
+        phaseExponent = 10.0;
     }
 
     float heightLerp = smoothstep(0.04, 0.58, localHeight);
@@ -142,7 +142,7 @@ void main()
     vec3 viewDir = normalize(vWorldPos - uCamPos);
     float forwardScatter = pow(max(dot(-viewDir, lightDir), 0.0), phaseExponent);
     float phase = mix(0.18, 1.0, forwardScatter);
-    vec3 inScatter = lightColor * phase * mix(0.12, 0.45, depthLerp) * mix(0.35, 1.00, patchiness);
+    vec3 inScatter = lightColor * phase * mix(0.18, 0.62, depthLerp) * mix(0.40, 1.05, patchiness);
 
     vec3 bounce = ambientSky * mix(0.35, 1.00, depthLerp) + waterBounce * (1.0 - heightLerp);
 
@@ -150,7 +150,7 @@ void main()
 
     if (uEnvironmentMode == 1)
     {
-        fogColor *= 0.82;
+        fogColor *= vec3(0.86, 0.96, 1.22);
     }
 
     out_color = vec4(fogColor, alpha);

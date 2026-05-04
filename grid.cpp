@@ -147,7 +147,56 @@ namespace
         const float b = (1.0f - tx) * f01 + tx * f11;
         return (1.0f - tz) * a + tz * b;
     }
-}
+    }
+
+    glm::vec2 rotate2D(const glm::vec2& p, float angle)
+    {
+        const float c = std::cos(angle);
+        const float s = std::sin(angle);
+        return glm::vec2(
+            c * p.x - s * p.y,
+            s * p.x + c * p.y
+        );
+    }
+    float sampleLayeredField(const std::vector<float>& field, int N, float x, float z, float basePatchSize, float activityBlend)
+    {
+        const glm::vec2 p0(x, z);
+        const glm::vec2 p1 = rotate2D(
+            glm::vec2(x + 0.93f * basePatchSize, z - 0.61f * basePatchSize),
+            0.63f
+        );
+        const glm::vec2 p2 = rotate2D(
+            glm::vec2(x - 1.74f * basePatchSize, z + 1.27f * basePatchSize),
+            -0.47f
+        );
+        const glm::vec2 p3 = rotate2D(
+            glm::vec2(x + 2.37f * basePatchSize, z + 1.91f * basePatchSize),
+            1.11f
+        );
+        const glm::vec2 p4 = rotate2D(
+            glm::vec2(x - 3.11f * basePatchSize, z - 2.43f * basePatchSize),
+            -1.36f
+        );
+
+        const float s0 = samplePeriodicField(field, N, p0.x, p0.y, basePatchSize);
+        const float s1 = samplePeriodicField(field, N, p1.x, p1.y, basePatchSize * 0.73f);
+        const float s2 = samplePeriodicField(field, N, p2.x, p2.y, basePatchSize * 1.41f);
+        const float s3 = samplePeriodicField(field, N, p3.x, p3.y, basePatchSize * 2.35f);
+        const float s4 = samplePeriodicField(field, N, p4.x, p4.y, basePatchSize * 0.46f);
+
+        const float breakupA = 0.5f + 0.5f * std::sin(0.041f * x - 0.028f * z + 0.7f);
+        const float breakupB = 0.5f + 0.5f * std::sin(-0.023f * x + 0.036f * z + 1.9f);
+        const float broadMask = 0.6f * breakupA + 0.4f * breakupB;
+
+        const float w0 = 1.0f;
+        const float w1 = (0.12f + 0.12f * activityBlend) * (0.80f + 0.50f * broadMask);
+        const float w2 = (0.08f + 0.11f * activityBlend) * (1.25f - 0.50f * broadMask);
+        const float w3 = 0.08f + 0.08f * activityBlend;
+        const float w4 = 0.03f + 0.07f * activityBlend;
+        const float invW = 1.0f / (w0 + w1 + w2 + w3 + w4);
+
+        return (w0 * s0 + w1 * s1 + w2 * s2 + w3 * s3 + w4 * s4) * invW;
+    }
 
 void GridMesh::setWaveActivity(float value)
 {
@@ -402,6 +451,7 @@ void GridMesh::update(float time)
     inverseFFT2D(slopeZSpectrum, N, slopeZField);
 
     const float fieldScale = heightScale * waveActivity * static_cast<float>(N * N);
+    const float activityBlend = glm::smoothstep(0.70f, 1.25f, waveActivity);
 
     const std::size_t vertexCount = baseXZ.size();
     for (std::size_t i = 0; i < vertexCount; ++i)
@@ -409,9 +459,14 @@ void GridMesh::update(float time)
         const float x = baseXZ[i].x;
         const float z = baseXZ[i].y;
 
-        const float height = fieldScale * samplePeriodicField(heightField, N, x, z, wavePatchSize);
-        const float dHdX = fieldScale * samplePeriodicField(slopeXField, N, x, z, wavePatchSize);
-        const float dHdZ = fieldScale * samplePeriodicField(slopeZField, N, x, z, wavePatchSize);
+        const float regionA = 0.5f + 0.5f * std::sin(0.018f * x + 0.011f * z + 0.07f * time);
+        const float regionB = 0.5f + 0.5f * std::sin(-0.009f * x + 0.016f * z + 1.7f - 0.05f * time);
+        const float regionMix = 0.6f * regionA + 0.4f * regionB;
+        const float localGain = glm::mix(1.0f, 0.82f + 0.30f * regionMix, 0.35f + 0.45f * activityBlend);
+
+        const float height = fieldScale * localGain * sampleLayeredField(heightField, N, x, z, wavePatchSize, activityBlend);
+        const float dHdX = fieldScale * localGain * sampleLayeredField(slopeXField, N, x, z, wavePatchSize, activityBlend);
+        const float dHdZ = fieldScale * localGain * sampleLayeredField(slopeZField, N, x, z, wavePatchSize, activityBlend);
 
         const glm::vec3 normal = glm::normalize(glm::vec3(-dHdX, 1.0f, -dHdZ));
         const glm::vec3 tangent = glm::normalize(glm::vec3(1.0f, dHdX, 0.0f));

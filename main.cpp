@@ -485,7 +485,7 @@ int main()
 
     GridMesh grid;
     grid.wavePatchSize = 13.0f;
-    grid.initialize(500, 500, 500.0f);
+    grid.initialize(500, 500, 750.0f);
     gScrollGrid = &grid;
     std::cout << "Wave activity: " << grid.waveActivity << " (range 0.10 - 1.45)\n";
 
@@ -577,7 +577,7 @@ int main()
         glm::vec3 camPos(0.0f, 0.60f, 2.72f);
 
         glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(0.0f, -1.5f, -(grid.size * 0.50f)));
+        model = glm::translate(model, glm::vec3(0.0f, -1.5f, -(grid.size * 0.48f)));
         glm::mat4 view = glm::lookAt(
             camPos,
             glm::vec3(0.0f, 0.10f, -16.0f),

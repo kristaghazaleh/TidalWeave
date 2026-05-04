@@ -58,7 +58,7 @@ void main()
 
     float distanceToCamera = length(vWorldPos - uCamPos);
     float distanceFade = smoothstep(uNearDistance, uFarDistance, distanceToCamera);
-    float frontFade = smoothstep(0.14, 0.92, localDepth);
+    float frontFade = mix(0.42, 1.0, smoothstep(0.02, 0.90, localDepth));
     float sideFade = 1.0 - smoothstep(0.58, 0.98, localX);
 
     vec2 driftDir = normalize(uDriftDir);
@@ -91,7 +91,8 @@ void main()
     float verticalShape = max(lowMist * topFeather, waterlineFeather * 0.28 * topFeather);
 
     float patchiness = smoothstep(0.36, 0.78, shape);
-    float density = uFogDensity * distanceFade * frontFade * sideFade * verticalShape * patchiness * mix(0.86, 1.14, rolling);
+    float foregroundLift = (uLayerIndex == 0) ? mix(1.28, 1.0, smoothstep(0.0, 0.55, localDepth)) : 1.0;
+    float density = uFogDensity * distanceFade * frontFade * sideFade * verticalShape * patchiness * mix(0.86, 1.14, rolling) * foregroundLift;
     if (uEnvironmentMode == 1)
     {
         density *= 0.58;

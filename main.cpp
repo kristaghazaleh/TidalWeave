@@ -484,7 +484,8 @@ int main()
     EnvironmentMode envMode = EnvironmentMode::Sunset;
 
     GridMesh grid;
-    grid.initialize(480, 480, 9.5f);
+    grid.wavePatchSize = 13.0f;
+    grid.initialize(500, 500, 500.0f);
     gScrollGrid = &grid;
     std::cout << "Wave activity: " << grid.waveActivity << " (range 0.10 - 1.45)\n";
 
@@ -502,14 +503,15 @@ int main()
     }
 
     FogSettings fogSettings;
-    fogSettings.position = glm::vec3(0.0f, -0.07f, -(grid.size * 0.18f));
-    fogSettings.size = glm::vec3(grid.size * 3.8f, 0.40f, grid.size * 2.90f);
+    const float fogReferenceSize = grid.wavePatchSize;
+    fogSettings.position = glm::vec3(0.0f, -0.07f, -(fogReferenceSize * 0.44f));
+    fogSettings.size = glm::vec3(fogReferenceSize * 4.2f, 0.34f, fogReferenceSize * 3.45f);
 
-    fogSettings.nearDistance = 1.60f;
-    fogSettings.farDistance = 17.0f;
+    fogSettings.nearDistance = 0.85f;
+    fogSettings.farDistance = 18.0f;
 
-    fogSettings.sunsetDensity = 0.78f;
-    fogSettings.nightDensity = 0.28f;
+    fogSettings.sunsetDensity = 0.74f;
+    fogSettings.nightDensity = 0.24f;
 
     fogSettings.sunsetColor = glm::vec3(0.84f, 0.72f, 0.67f);
     fogSettings.nightColor  = glm::vec3(0.05f, 0.06f, 0.08f);
@@ -520,7 +522,7 @@ int main()
 
     float nightRotation = 0.00f;
     float nightPitch = 0.00f;
-    float nightExposure = 8.20f;
+    float nightExposure = 7.50f;
 
     float lastTime = static_cast<float>(glfwGetTime());
 
@@ -575,9 +577,10 @@ int main()
         glm::vec3 camPos(0.0f, 0.60f, 2.72f);
 
         glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(0.0f, -1.5f, -(grid.size * 0.50f)));
         glm::mat4 view = glm::lookAt(
             camPos,
-            glm::vec3(0.0f, 0.12f, -1.05f),
+            glm::vec3(0.0f, 0.10f, -16.0f),
             glm::vec3(0.0f, 1.0f, 0.0f)
         );
         glm::mat4 projection = glm::perspective(

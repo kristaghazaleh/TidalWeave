@@ -14,7 +14,6 @@ in vec2 vUv;
 
 out vec4 out_color;
 
-const float PI = 3.14159265359;
 const float INV_PI = 0.31830988618;
 const float INV_TWO_PI = 0.15915494309;
 
@@ -98,6 +97,27 @@ vec3 sampleEnvironmentSoft(vec3 dir, float roughness)
     return mix(sky, env, envMix);
 }
 
+vec3 applyDetailNormals(vec3 baseNormal, vec2 worldXZ, float time)
+{
+    const float TWO_PI = 6.28318530718;
+
+    vec2 uv1 = worldXZ * 0.75 + vec2(0.03, 0.02) * time;
+    vec3 d1 = normalize(vec3(
+        cos(uv1.x * TWO_PI) * sin(uv1.y * TWO_PI),
+        5.0,
+        sin(uv1.x * TWO_PI) * cos(uv1.y * TWO_PI)
+    ));
+
+    vec2 uv2 = worldXZ * 1.90 + vec2(-0.02, 0.035) * time;
+    vec3 d2 = normalize(vec3(
+        cos(uv2.x * TWO_PI) * sin(uv2.y * TWO_PI) * 0.6,
+        7.0,
+        sin(uv2.x * TWO_PI) * cos(uv2.y * TWO_PI) * 0.6
+    ));
+
+    return normalize(baseNormal + 0.10 * d1 + 0.05 * d2);
+}
+
 void main()
 {
     vec3 waterNormal = normalize(vNormal);
@@ -105,6 +125,8 @@ void main()
     {
         waterNormal = -waterNormal;
     }
+
+    waterNormal = applyDetailNormals(waterNormal, vPosition.xz, uTime);
 
     vec3 viewDir = normalize(uCamPos - vPosition);
     vec3 reflectedDir = reflect(-viewDir, waterNormal);
@@ -116,6 +138,7 @@ void main()
     float diffuseStrength;
     float specularStrength;
     float envStrength;
+    float microStrength;
 
     if (uEnvironmentMode == 0)
     {
@@ -126,6 +149,7 @@ void main()
         diffuseStrength = 0.45;
         specularStrength = 0.80;
         envStrength = 0.92;
+        microStrength = 0.26;
     }
     else
     {
@@ -136,6 +160,7 @@ void main()
         diffuseStrength = 0.18;
         specularStrength = 0.92;
         envStrength = 0.72;
+        microStrength = 0.14;
     }
 
     vec3 halfVec = normalize(lightDir + viewDir);
@@ -148,13 +173,14 @@ void main()
     float roughness = clamp(1.0 - NdotV, 0.0, 1.0);
     vec3 envColor = sampleEnvironmentSoft(reflectedDir, roughness);
 
-    float band = 0.5 + 0.5 * sin(7.0 * vUv.x + 4.5 * vUv.y + 0.22 * uTime);
+    float band = 0.5 + 0.5 * sin(0.55 * vPosition.x + 0.35 * vPosition.z + 0.06 * uTime);
     vec3 waterBody = mix(deepWater, shallowWater, band);
 
     vec3 ambient = ambientStrength * waterBody;
     vec3 diffuse = diffuseStrength * waterBody * NdotL;
     vec3 specular = specularStrength * vec3(1.0) * pow(NdotH, 140.0);
+    vec3 microSpecular = microStrength * vec3(1.0) * pow(NdotH, 480.0);
 
-    vec3 color = ambient + (1.0 - fresnel) * diffuse + fresnel * envStrength * envColor + specular;
+    vec3 color = ambient + (1.0 - fresnel) * diffuse + fresnel * envStrength * envColor + specular + microSpecular;
     out_color = vec4(color, 1.0);
 }

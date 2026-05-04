@@ -15,7 +15,8 @@ struct GridMesh
 
     int rows = 0;
     int cols = 0;
-    float size = 0.0f;
+    float size = 0.0f;            // visible mesh size in world units
+    float wavePatchSize = 13.0f;  // repeating FFT wave tile size in world units
 
     glm::vec2 windDirection = glm::normalize(glm::vec2(1.0f, 0.18f));
     float windSpeed = 18.0f;

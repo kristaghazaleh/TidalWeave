@@ -170,10 +170,15 @@ void GridMesh::generateSpectralModes()
         spectralResolution = greatestPowerOfTwoLE(spectralResolution);
     }
 
+    if (wavePatchSize <= 0.0f)
+    {
+        wavePatchSize = size;
+    }
+
     const float g = 9.81f;
     const glm::vec2 windDir = glm::normalize(windDirection);
     const float L = (windSpeed * windSpeed) / g;
-    const float dk = glm::two_pi<float>() / size;
+    const float dk = glm::two_pi<float>() / wavePatchSize;
     const int N = spectralResolution;
 
     const std::size_t modeCount = static_cast<std::size_t>(N) * N;
@@ -404,9 +409,9 @@ void GridMesh::update(float time)
         const float x = baseXZ[i].x;
         const float z = baseXZ[i].y;
 
-        const float height = fieldScale * samplePeriodicField(heightField, N, x, z, size);
-        const float dHdX = fieldScale * samplePeriodicField(slopeXField, N, x, z, size);
-        const float dHdZ = fieldScale * samplePeriodicField(slopeZField, N, x, z, size);
+        const float height = fieldScale * samplePeriodicField(heightField, N, x, z, wavePatchSize);
+        const float dHdX = fieldScale * samplePeriodicField(slopeXField, N, x, z, wavePatchSize);
+        const float dHdZ = fieldScale * samplePeriodicField(slopeZField, N, x, z, wavePatchSize);
 
         const glm::vec3 normal = glm::normalize(glm::vec3(-dHdX, 1.0f, -dHdZ));
         const glm::vec3 tangent = glm::normalize(glm::vec3(1.0f, dHdX, 0.0f));

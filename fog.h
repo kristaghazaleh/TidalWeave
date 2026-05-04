@@ -14,7 +14,7 @@
 
 struct FogSettings
 {
-    glm::vec3 position = glm::vec3(0.0f, -0.07f, -1.8f);
+    glm::vec3 position = glm::vec3(0.0f, -0.06f, -0.8f);
     glm::vec3 size = glm::vec3(18.0f, 0.40f, 13.5f);
 
     glm::vec3 sunsetColor = glm::vec3(0.84f, 0.72f, 0.67f);
@@ -23,20 +23,20 @@ struct FogSettings
     float sunsetDensity = 0.78f;
     float nightDensity  = 0.28f;
 
-    float nearDistance = 1.60f;
+    float nearDistance = 1.10f;
     float farDistance  = 17.0f;
 
     std::array<float, 3> layerHeightOffsets = { 0.00f, 0.025f, 0.060f };
-    std::array<float, 3> layerDepthOffsets  = { -0.35f, -2.70f, -5.30f };
+    std::array<float, 3> layerDepthOffsets  = { 2.10f, 0.10f, -3.20f };
 
-    std::array<float, 3> layerWidthScales  = { 0.95f, 1.08f, 1.24f };
-    std::array<float, 3> layerHeightScales = { 0.17f, 0.12f, 0.09f };
-    std::array<float, 3> layerDepthScales  = { 0.92f, 1.08f, 1.30f };
+    std::array<float, 3> layerWidthScales  = { 1.14f, 1.12f, 1.28f };
+    std::array<float, 3> layerHeightScales = { 0.18f, 0.13f, 0.09f };
+    std::array<float, 3> layerDepthScales  = { 0.96f, 1.10f, 1.36f };
 
-    std::array<float, 3> layerDensityScales   = { 0.95f, 0.64f, 0.42f };
+    std::array<float, 3> layerDensityScales   = { 0.78f, 0.66f, 0.42f };
     std::array<float, 3> layerNoiseScales     = { 0.22f, 0.31f, 0.41f };
     std::array<float, 3> layerAnimationSpeeds = { 0.24f, 0.18f, 0.13f };
-    std::array<float, 3> layerAlphaCaps       = { 0.18f, 0.13f, 0.09f };
+    std::array<float, 3> layerAlphaCaps       = { 0.16f, 0.13f, 0.09f };
 
     std::array<glm::vec2, 3> layerDriftDirs = {
         glm::vec2( 1.00f,  0.16f),
@@ -58,25 +58,24 @@ public:
             return false;
         }
 
-        // x in [-0.5, 0.5], y in [0, 1], z in [0, -1]
         const std::array<float, 8 * 3> vertices = {
-            -0.5f, 0.0f,  0.0f, // 0 front bottom left
-             0.5f, 0.0f,  0.0f, // 1 front bottom right
-             0.5f, 1.0f,  0.0f, // 2 front top right
-            -0.5f, 1.0f,  0.0f, // 3 front top left
-            -0.5f, 0.0f, -1.0f, // 4 back bottom left
-             0.5f, 0.0f, -1.0f, // 5 back bottom right
-             0.5f, 1.0f, -1.0f, // 6 back top right
-            -0.5f, 1.0f, -1.0f  // 7 back top left
+            -0.5f, 0.0f,  0.0f,
+             0.5f, 0.0f,  0.0f,
+             0.5f, 1.0f,  0.0f,
+            -0.5f, 1.0f,  0.0f,
+            -0.5f, 0.0f, -1.0f,
+             0.5f, 0.0f, -1.0f,
+             0.5f, 1.0f, -1.0f,
+            -0.5f, 1.0f, -1.0f
         };
 
         const std::array<unsigned int, 36> indices = {
-            0, 1, 2,  2, 3, 0, // front
-            1, 5, 6,  6, 2, 1, // right
-            5, 4, 7,  7, 6, 5, // back
-            4, 0, 3,  3, 7, 4, // left
-            3, 2, 6,  6, 7, 3, // top
-            4, 5, 1,  1, 0, 4  // bottom
+            0, 1, 2,  2, 3, 0,
+            1, 5, 6,  6, 2, 1,
+            5, 4, 7,  7, 6, 5,
+            4, 0, 3,  3, 7, 4,
+            3, 2, 6,  6, 7, 3,
+            4, 5, 1,  1, 0, 4
         };
 
         glGenVertexArrays(1, &vao_);
@@ -95,7 +94,6 @@ public:
         glEnableVertexAttribArray(0);
 
         glBindVertexArray(0);
-
         return true;
     }
 
